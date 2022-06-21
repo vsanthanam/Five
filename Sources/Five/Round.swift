@@ -71,6 +71,23 @@ public struct Round: Sendable, Equatable, Hashable, Codable, CustomStringConvert
         scores.values.filter { $0 != .noScore }.count == players.count
     }
 
+    public var winners: Set<Game.Player> {
+        guard isComplete else { fatalError("Round is incomplete") }
+        return .init(players
+            .filter { player in
+                score(forPlayer: player) == 0
+            })
+    }
+
+    public var losers: Set<Game.Player> {
+        guard isComplete else { fatalError("Round is incomplete") }
+        let max = scores.values.max()!
+        return .init(players
+            .filter { player in
+                score(forPlayer: player) == max
+            })
+    }
+
     /// Retrieve the score for a player
     /// - Parameter player: The player
     /// - Returns: The score for that player, or `nil` if that player does not yet have a score

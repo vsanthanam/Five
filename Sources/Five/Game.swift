@@ -65,39 +65,6 @@ public struct Game: Sequence, Sendable, Equatable, Hashable, Codable, CustomStri
         /// Losing players, then winning players
         case losingToWinning
     }
-    
-    public struct Result: Sendable, Equatable, Hashable, Codable {
-        
-        public var averageScore: Double {
-            let scores: [Round.Score] = game.rounds
-                .reduce([]) { scores, round in
-                    var next = scores
-                    for player in round.players {
-                        next.append(round.score(forPlayer: player))
-                    }
-                    return next
-                }
-                .compactMap { $0 }
-            let sum = scores.reduce(0, +)
-            return (Double)(sum)/(Double)(scores.count)
-        }
-        
-        public var winner: Player {
-            game.winners.first!
-        }
-        
-        public var losers: Set<Player> {
-            game.losers
-        }
-        
-        init(game: Game) {
-            precondition(game.isComplete)
-            self.game = game
-        }
-        
-        private let game: Game
-        
-    }
 
     /// All players in the game
     private let orderedPlayers: OrderedSet<Player>
@@ -118,36 +85,39 @@ public struct Game: Sequence, Sendable, Equatable, Hashable, Codable, CustomStri
     public var isComplete: Bool {
         activePlayers().count == 1
     }
-    
+
     /// The results of the game, if it is complete
     /// - Throws: An error if the came is incomplete
-    public var result: Result {
+    public var result: Game.Result {
         get throws {
             guard isComplete else {
                 throw Error.incompleteGame
             }
-            return .init(game: self)
+            return .init(game: self, rounds: rounds)
         }
     }
 
+    /// The game's current winners
     public var winners: Set<Player> {
         let winner = activePlayers(withSort: .winningToLosing).first!
         let winningScore = totalScore(forPlayer: winner)
         return .init(activePlayers().filter { totalScore(forPlayer: $0) == winningScore })
     }
-    
+
+    /// The game's current losers
     public var losers: Set<Player> {
         let loser = allPlayers(withSort: .losingToWinning).first!
         let losingScore = totalScore(forPlayer: loser)
         return .init(allPlayers().filter { player in totalScore(forPlayer: player) == losingScore })
     }
-    
+
+    /// The game's current losers who have yet to be eliminated
     public var activeLosers: Set<Player> {
         let loser = activePlayers(withSort: .losingToWinning).first!
         let losingScore = totalScore(forPlayer: loser)
         return .init(activePlayers().filter { player in totalScore(forPlayer: player) == losingScore })
     }
-    
+
     /// The total score for a given player
     /// - Parameter player: The player
     /// - Returns: The player's total score
@@ -297,7 +267,7 @@ public struct Game: Sequence, Sendable, Equatable, Hashable, Codable, CustomStri
     public var description: String { rounds.description }
 
     // MARK: - Private
-    
+
     private enum Error: Swift.Error {
         case incompleteGame
     }
