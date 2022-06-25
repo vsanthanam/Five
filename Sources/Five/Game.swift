@@ -68,6 +68,9 @@ public struct Game: Sequence, Sendable, Equatable, Hashable, Codable, CustomStri
 
     /// All players in the game
     private let orderedPlayers: OrderedSet<Player>
+    
+    /// All the rounds in the game
+    public private(set) var rounds = [Round]()
 
     /// The score limit used to eliminate players from the game
     public var scoreLimit: TotalScore {
@@ -271,8 +274,6 @@ public struct Game: Sequence, Sendable, Equatable, Hashable, Codable, CustomStri
     private enum Error: Swift.Error {
         case incompleteGame
     }
-
-    private var rounds = [Round]()
 
 }
 

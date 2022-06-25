@@ -27,22 +27,26 @@ import OrderedCollections
 
 public extension Game {
 
-    struct Result: Sendable, Equatable, Hashable, Codable {
+    struct Result: Equatable, Hashable, Sendable, Codable {
 
-        public struct PlayerResult: Sendable, Equatable, Hashable, Codable {
+        public struct PlayerResult: Equatable, Hashable, Sendable, Codable {
 
             init(player: Player,
                  wins: Int,
                  losses: Int,
                  numberOfFifties: Int,
                  bestNonZeroScore: Round.Score,
-                 worstNonFiftyScore: Round.Score) {
+                 worstNonFiftyScore: Round.Score,
+                 averageScore: Double,
+                 averageNonZeroScore: Double) {
                 self.player = player
                 self.wins = wins
                 self.losses = losses
                 self.numberOfFifties = numberOfFifties
                 self.bestNonZeroScore = bestNonZeroScore
                 self.worstNonFiftyScore = worstNonFiftyScore
+                self.averageScore = averageScore
+                self.averageNonZeroScore = averageNonZeroScore
             }
 
             public let player: Player
@@ -56,6 +60,10 @@ public extension Game {
             public let bestNonZeroScore: Round.Score
 
             public let worstNonFiftyScore: Round.Score
+
+            public let averageScore: Double
+
+            public let averageNonZeroScore: Double
 
         }
 
@@ -104,15 +112,27 @@ public extension Game {
                     .filter { $0.players.contains(player) }
                     .map { $0.score(forPlayer: player) }
                     .compactMap { $0 }
+
                 let losses = rounds
                     .filter { $0.losers.contains(player) }
                     .count
+
+                let scoreSum = scores.reduce(0, +)
+                let averageScore = (Double)(scoreSum) / (Double)(scores.count)
+
+                let nonZeroScores = scores.filter { $0 != 50 }
+                let nonZeroScoreSum = nonZeroScores.reduce(0, +)
+
+                let averageNonZeroScore = (Double)(nonZeroScoreSum) / (Double)(nonZeroScores.count)
+
                 let result = PlayerResult(player: player,
                                           wins: scores.filter { $0 == 0 }.count,
                                           losses: losses,
                                           numberOfFifties: scores.filter { $0 == 50 }.count,
                                           bestNonZeroScore: scores.filter { $0 != 0 }.min()!,
-                                          worstNonFiftyScore: scores.filter { $0 != 50 }.max()!)
+                                          worstNonFiftyScore: scores.filter { $0 != 50 }.max()!,
+                                          averageScore: averageScore,
+                                          averageNonZeroScore: averageNonZeroScore)
                 playerResults[player] = result
             }
 
