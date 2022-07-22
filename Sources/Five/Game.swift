@@ -68,25 +68,16 @@ public struct Game: Sequence, Sendable, Equatable, Hashable, Codable, CustomStri
 
     /// All players in the game
     private let orderedPlayers: OrderedSet<Player>
-    
+
     /// All the rounds in the game
     public private(set) var rounds = [Round]()
 
     /// The score limit used to eliminate players from the game
-    public var scoreLimit: TotalScore {
-        willSet {
-            let max = activePlayers()
-                .map { player in
-                    totalScore(forPlayer: player)
-                }
-                .max()!
-            precondition(newValue > max, "New score limit must be greater than the score of all currently active players!")
-        }
-    }
+    public let scoreLimit: TotalScore
 
     /// Whether or not the game is complet
     public var isComplete: Bool {
-        activePlayers().count == 1
+        activePlayers.count == 1
     }
 
     /// The results of the game, if it is complete
@@ -100,11 +91,19 @@ public struct Game: Sequence, Sendable, Equatable, Hashable, Codable, CustomStri
         }
     }
 
+    public var activePlayers: OrderedSet<Player> {
+        activePlayers(withSort: .playingOrder)
+    }
+
+    public var allPlayers: OrderedSet<Player> {
+        allPlayers(withSort: .playingOrder)
+    }
+
     /// The game's current winners
     public var winners: Set<Player> {
         let winner = activePlayers(withSort: .winningToLosing).first!
         let winningScore = totalScore(forPlayer: winner)
-        return .init(activePlayers().filter { totalScore(forPlayer: $0) == winningScore })
+        return .init(activePlayers.filter { totalScore(forPlayer: $0) == winningScore })
     }
 
     /// The game's current losers
@@ -118,7 +117,7 @@ public struct Game: Sequence, Sendable, Equatable, Hashable, Codable, CustomStri
     public var activeLosers: Set<Player> {
         let loser = activePlayers(withSort: .losingToWinning).first!
         let losingScore = totalScore(forPlayer: loser)
-        return .init(activePlayers().filter { player in totalScore(forPlayer: player) == losingScore })
+        return .init(activePlayers.filter { player in totalScore(forPlayer: player) == losingScore })
     }
 
     /// The total score for a given player
@@ -135,7 +134,7 @@ public struct Game: Sequence, Sendable, Equatable, Hashable, Codable, CustomStri
     /// All players in the game
     /// - Parameter sort: The sorting order of the players
     /// - Returns: The players in the game, including players which may have already been eliminated
-    public func allPlayers(withSort sort: PlayerSort = .playingOrder) -> OrderedSet<Player> {
+    public func allPlayers(withSort sort: PlayerSort) -> OrderedSet<Player> {
         switch sort {
         case .playingOrder:
             return orderedPlayers
@@ -155,17 +154,17 @@ public struct Game: Sequence, Sendable, Equatable, Hashable, Codable, CustomStri
     /// Players which are still in the game
     /// - Parameter sort: The sorting order of the players
     /// - Returns: The players in the the game which haven't yet been eliminated
-    public func activePlayers(withSort sort: PlayerSort = .playingOrder) -> OrderedSet<Player> {
+    public func activePlayers(withSort sort: PlayerSort) -> OrderedSet<Player> {
         switch sort {
         case .playingOrder:
             return OrderedSet(orderedPlayers.filter { totalScore(forPlayer: $0) < scoreLimit })
         case .winningToLosing:
-            return OrderedSet(activePlayers()
+            return OrderedSet(activePlayers
                 .sorted { lhs, rhs in
                     totalScore(forPlayer: lhs) < totalScore(forPlayer: rhs)
                 })
         case .losingToWinning:
-            return OrderedSet(activePlayers()
+            return OrderedSet(activePlayers
                 .sorted { lhs, rhs in
                     totalScore(forPlayer: lhs) > totalScore(forPlayer: rhs)
                 })
@@ -180,7 +179,7 @@ public struct Game: Sequence, Sendable, Equatable, Hashable, Codable, CustomStri
 
     public func newRound(withScores scoreBuilder: (Player) -> Round.Score) -> Round {
         var dict = OrderedDictionary<Player, Round.Score>()
-        for player in activePlayers() {
+        for player in activePlayers {
             let score = scoreBuilder(player)
             dict[player] = score
         }
@@ -222,7 +221,7 @@ public struct Game: Sequence, Sendable, Equatable, Hashable, Codable, CustomStri
         precondition(index < rounds.count, "Invalid index \(index)!")
         var copy = self
         copy.rounds.remove(at: index)
-        guard copy.activePlayers() == activePlayers() else {
+        guard copy.activePlayers == activePlayers else {
             fatalError("Cannot remove round at index \(index)! Game would change impossibly. Remove subsequent rounds first.")
         }
         rounds.remove(at: index)
